@@ -32,6 +32,9 @@ env:
 jobs:
   build:
     strategy:
+      # Without this a flake on one architecture cancels the other, hiding
+      # whether it would have passed.
+      fail-fast: false
       matrix:
         include:
           - arch: x86_64
