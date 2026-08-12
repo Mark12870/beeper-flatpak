@@ -83,20 +83,28 @@ flatpak run io.github.mark12870.beeper
 
 ## Publishing setup
 
-Two one-time steps are needed before the workflows can publish:
+Pages enables itself on the first successful run, so no manual setup is required.
 
-1. **Enable Pages** — repository *Settings → Pages → Source: GitHub Actions*.
-2. **Add a signing key** so users get signature verification:
+Signing is driven entirely by whether a `GPG_PRIVATE_KEY` repository secret exists:
 
-   ```sh
-   gpg --quick-generate-key "Beeper Flatpak <you@example.com>" default default never
-   gpg --armor --export-secret-keys <KEY_ID>
-   ```
+- **With the secret** — the repo is signed and its public key is embedded in the
+  `.flatpakrepo`, so clients verify every update.
+- **Without it** — the workflow logs a warning and publishes unsigned. The install command
+  above still works verbatim, because a `.flatpakrepo` carrying no `GPGKey=` makes
+  `flatpak remote-add` set `gpg-verify=false` itself. Nothing then attests that the repo
+  came from this project.
 
-   Store that private key as the `GPG_PRIVATE_KEY` repository secret.
+To set it up, generate a key and store the private half as the secret:
 
-Signing is optional — without the secret the workflow still publishes, but it emits a warning
-and users would have to add the remote with `--no-gpg-verify`.
+```sh
+gpg --quick-generate-key "Beeper Flatpak <you@example.com>" default default never
+gpg --list-secret-keys --keyid-format=long          # note the key id
+gpg --export-secret-keys --armor <KEY_ID> > beeper-flatpak-key.asc
+```
+
+Paste the file's contents into *Settings → Secrets and variables → Actions → New repository
+secret*, name it `GPG_PRIVATE_KEY`, then delete the file. The next run picks it up; no code
+change is needed.
 
 Each publish rebuilds the OSTree repo from scratch. Because the payload is `extra-data` the
 commits are tiny, but it does mean a manual re-run of the workflow shows up to clients as an

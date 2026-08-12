@@ -97,6 +97,8 @@ jobs:
 
       - name: Merge the per-architecture repos
         run: |
+          # ostree init mkdirs only the repo itself, and this job has no checkout.
+          mkdir -p _site
           ostree --repo=_site/repo init --mode=archive-z2
           for tar in artifacts/repo-*.tar; do
             dir="unpacked/$(basename "$tar" .tar)"
@@ -107,6 +109,8 @@ jobs:
 
       - uses: actions/configure-pages@v6
         id: pages
+        with:
+          enablement: true
 
       - name: Import the signing key
         id: gpg

@@ -3,3 +3,6 @@ build/
 repo/
 .idea/
 .claude/settings.local.json
+*.asc
+*.key
+*.gpg
