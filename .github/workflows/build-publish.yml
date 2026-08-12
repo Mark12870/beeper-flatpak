@@ -174,24 +174,38 @@ jobs:
       - name: Update and sign the repo
         run: |
           # Annotations are readable without repo admin rights; raw logs are not.
-          if ! err="$(flatpak build-update-repo --generate-static-deltas --prune \
+          # The build jobs export commits unsigned, and a client with
+          # gpg-verify=true refuses those. Sign them BEFORE build-update-repo: a
+          # static delta embeds the commit as it stands when the delta is built,
+          # so signing afterwards would leave every delta carrying an unsigned
+          # commit -- and ostree prefers deltas over HTTP.
+          for ref in $(ostree --repo=_site/repo refs); do
+            ostree --repo=_site/repo gpg-sign \
+              --gpg-homedir="${{ steps.gpg.outputs.gnupghome }}" \
+              "$(ostree --repo=_site/repo rev-parse "${ref}")" \
+              "${{ steps.gpg.outputs.keyid }}"
+          done
+
+          # No --generate-static-deltas: ostree prefers a delta over plain objects
+          # on an HTTP remote, and a delta does not carry the commit's detached
+          # signature, so every install fails gpg-verify. Deltas would only be
+          # optimising a ~4 MB payload anyway -- the 270 MB comes from Beeper's
+          # CDN as extra-data, which deltas never touch.
+          if ! err="$(flatpak build-update-repo --prune \
                        --gpg-sign="${{ steps.gpg.outputs.keyid }}" \
                        --gpg-homedir="${{ steps.gpg.outputs.gnupghome }}" \
                        _site/repo 2>&1 >/dev/null)"; then
             echo "::error::build-update-repo failed: ${err//$'\n'/ }"
             exit 1
           fi
-          test -f _site/repo/summary.sig  # the signature must actually exist
 
-          # build-update-repo signs only the summary, but flatpak-builder exported
-          # these commits unsigned in the build jobs, and a client with
-          # gpg-verify=true refuses to install a commit carrying no signature.
-          # Signatures are detached, so adding them here leaves the summary valid.
+          test -f _site/repo/summary.sig
           for ref in $(ostree --repo=_site/repo refs); do
-            ostree --repo=_site/repo gpg-sign \
-              --gpg-homedir="${{ steps.gpg.outputs.gnupghome }}" \
-              "$(ostree --repo=_site/repo rev-parse "${ref}")" \
-              "${{ steps.gpg.outputs.keyid }}"
+            c="$(ostree --repo=_site/repo rev-parse "${ref}")"
+            if [ ! -f "_site/repo/objects/${c:0:2}/${c:2}.commitmeta" ]; then
+              echo "::error::commit for ${ref} is unsigned"
+              exit 1
+            fi
           done
 
       - name: Generate the .flatpakrepo
