@@ -183,6 +183,17 @@ jobs:
           fi
           test -f _site/repo/summary.sig  # the signature must actually exist
 
+          # build-update-repo signs only the summary, but flatpak-builder exported
+          # these commits unsigned in the build jobs, and a client with
+          # gpg-verify=true refuses to install a commit carrying no signature.
+          # Signatures are detached, so adding them here leaves the summary valid.
+          for ref in $(ostree --repo=_site/repo refs); do
+            ostree --repo=_site/repo gpg-sign \
+              --gpg-homedir="${{ steps.gpg.outputs.gnupghome }}" \
+              "$(ostree --repo=_site/repo rev-parse "${ref}")" \
+              "${{ steps.gpg.outputs.keyid }}"
+          done
+
       - name: Generate the .flatpakrepo
         env:
           BASE: ${{ steps.pages.outputs.base_url }}
