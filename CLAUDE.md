@@ -32,6 +32,15 @@ Validate with `desktop-file-validate`, `appstreamcli validate`, and `bash -n`.
   `scripts/update-version.py` parses it and computes hashes itself. Anything
   referencing `download.todesktop.com` is stale.
 - **Upstream's internal name is `beepertexts`**, not `beeper`.
+- **Config deliberately lives at `~/.config/BeeperTexts`, not `~/.var/app/`.** `beeper.sh`
+  passes `--user-data-dir` because `XDG_CONFIG_HOME` is redirected into the sandbox and
+  cannot reach the host path. This is intentional, so installs migrating off the AppImage
+  keep their data — do not "fix" it back to the sandbox default.
+- **Static deltas break GPG verification.** ostree prefers a delta over plain objects on an
+  HTTP remote and the delta carries no detached signature, so every install fails
+  gpg-verify. Never re-add `--generate-static-deltas`.
+- **Verify signing over HTTP, never `file://`.** Local pulls resolve objects directly and
+  skip the delta path, so a `file://` test passes against a repo real clients reject.
 - A push made with the default `GITHUB_TOKEN` raises no `push` event, so
   `update-version.yml` invokes `build-publish.yml` directly via `workflow_call`.
 - Fedora's system `flathub` remote is filtered; add a user-scoped one to install SDKs.

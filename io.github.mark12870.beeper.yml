@@ -18,6 +18,9 @@ finish-args:
   - --filesystem=xdg-download
   # Screen sharing.
   - --filesystem=xdg-run/pipewire-0
+  # Upstream's config location, so an install migrating off the AppImage keeps
+  # its accounts and history. One directory, not all of xdg-config.
+  - --filesystem=xdg-config/BeeperTexts
 
   - --talk-name=org.freedesktop.Notifications
   # Inhibit the screensaver during calls.

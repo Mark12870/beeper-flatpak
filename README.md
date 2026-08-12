@@ -50,6 +50,16 @@ republishes on its own. Both workflows can also be run by hand from the **Action
 > them on public repos that go inactive. If releases stop being picked up, re-enable the
 > schedule from the Actions tab.
 
+## Where your data lives
+
+`~/.config/BeeperTexts` — the same path Beeper's own AppImage and deb use, not the usual
+`~/.var/app/<app-id>/`. That way an existing install carries over with nothing to migrate.
+The app is granted `--filesystem=xdg-config/BeeperTexts`, that one directory and no more.
+
+Two consequences: `flatpak uninstall --delete-data` will **not** remove it, and a native
+Beeper installed alongside shares the same data. Credentials are not in there — they go to
+the system keyring through libsecret.
+
 ## Extra launch flags
 
 Add one flag per line to `~/.config/beeper-flags.conf` (blank lines and `#` comments are ignored):
