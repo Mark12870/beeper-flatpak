@@ -83,7 +83,10 @@ flatpak run io.github.mark12870.beeper
 
 ## Publishing setup
 
-Pages enables itself on the first successful run, so no manual setup is required.
+**Enable Pages once** at *Settings → Pages → Source: GitHub Actions*. This cannot be
+automated: creating a Pages site needs `administration: write`, which the workflow's
+`GITHUB_TOKEN` cannot be granted — `pages: write` only allows deploying to a site that
+already exists.
 
 Signing is driven entirely by whether a `GPG_PRIVATE_KEY` repository secret exists:
 

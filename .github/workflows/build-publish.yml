@@ -109,8 +109,6 @@ jobs:
 
       - uses: actions/configure-pages@v6
         id: pages
-        with:
-          enablement: true
 
       - name: Import the signing key
         id: gpg
