@@ -88,14 +88,13 @@ automated: creating a Pages site needs `administration: write`, which the workfl
 `GITHUB_TOKEN` cannot be granted — `pages: write` only allows deploying to a site that
 already exists.
 
-Signing is driven entirely by whether a `GPG_PRIVATE_KEY` repository secret exists:
+Publishing **requires** a `GPG_PRIVATE_KEY` repository secret; the workflow fails without
+one rather than publishing unsigned. That is deliberate — clients that added the remote
+while it was signed break on an unsigned update, so a green build must never quietly
+downgrade it.
 
-- **With the secret** — the repo is signed and its public key is embedded in the
-  `.flatpakrepo`, so clients verify every update.
-- **Without it** — the workflow logs a warning and publishes unsigned. The install command
-  above still works verbatim, because a `.flatpakrepo` carrying no `GPGKey=` makes
-  `flatpak remote-add` set `gpg-verify=false` itself. Nothing then attests that the repo
-  came from this project.
+Use a key with **no passphrase**: CI imports it with `gpg --batch`, which cannot answer a
+prompt.
 
 To set it up, generate a key and store the private half as the secret:
 

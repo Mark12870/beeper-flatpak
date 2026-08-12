@@ -115,31 +115,36 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
-          # Signing is optional: without the secret the repo still works, users
-          # just have to add the remote with --no-gpg-verify.
+          # Hard failure rather than a quiet unsigned publish: clients that added
+          # the remote while it was signed break on an unsigned update, and a
+          # green build should never silently downgrade that.
           if [ -z "${GPG_PRIVATE_KEY}" ]; then
-            echo "::warning::GPG_PRIVATE_KEY is not set - publishing an unsigned repo."
-            echo "signed=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "::error::GPG_PRIVATE_KEY is missing or empty. Add it under" \
+                 "Settings > Secrets and variables > Actions > Repository secrets."
+            exit 1
           fi
-          export GNUPGHOME="${RUNNER_TEMP}/gnupg"
+          GNUPGHOME="${RUNNER_TEMP}/gnupg"
           mkdir -p "${GNUPGHOME}" && chmod 700 "${GNUPGHOME}"
+          export GNUPGHOME
           printf '%s' "${GPG_PRIVATE_KEY}" | gpg --batch --import
           keyid="$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/ {print $10; exit}')"
+          if [ -z "${keyid}" ]; then
+            echo "::error::the secret imported no usable secret key"
+            exit 1
+          fi
+          echo "signing with ${keyid}"
           {
-            echo "signed=true"
             echo "keyid=${keyid}"
             echo "gnupghome=${GNUPGHOME}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Update and sign the repo
         run: |
-          args=(--generate-static-deltas --prune)
-          if [ "${{ steps.gpg.outputs.signed }}" = "true" ]; then
-            args+=(--gpg-sign="${{ steps.gpg.outputs.keyid }}"
-                   --gpg-homedir="${{ steps.gpg.outputs.gnupghome }}")
-          fi
-          flatpak build-update-repo "${args[@]}" _site/repo
+          flatpak build-update-repo --generate-static-deltas --prune \
+            --gpg-sign="${{ steps.gpg.outputs.keyid }}" \
+            --gpg-homedir="${{ steps.gpg.outputs.gnupghome }}" \
+            _site/repo
+          test -f _site/repo/summary.sig  # the signature must actually exist
 
       - name: Generate the .flatpakrepo
         env:
@@ -152,10 +157,8 @@ jobs:
             echo "Homepage=https://github.com/${GITHUB_REPOSITORY}"
             echo 'Comment=Unofficial Flatpak build of the Beeper desktop app'
             echo 'Description=Unofficial Flatpak packaging of the official Beeper desktop application. Not affiliated with Beeper or Automattic.'
-            if [ "${{ steps.gpg.outputs.signed }}" = "true" ]; then
-              echo "GPGKey=$(gpg --homedir "${{ steps.gpg.outputs.gnupghome }}" \
-                --export "${{ steps.gpg.outputs.keyid }}" | base64 -w0)"
-            fi
+            echo "GPGKey=$(gpg --homedir "${{ steps.gpg.outputs.gnupghome }}" \
+              --export "${{ steps.gpg.outputs.keyid }}" | base64 -w0)"
           } > "_site/${APP_ID}.flatpakrepo"
 
           # Stop Pages from running the upload through Jekyll.
