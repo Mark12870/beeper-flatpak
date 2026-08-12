@@ -1,0 +1,85 @@
+app-id: io.github.mark12870.beeper
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: '25.08'
+command: beeper.sh
+
+finish-args:
+  - --share=ipc
+  - --share=network
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pulseaudio
+  # Cameras and the GPU, for calls and hardware acceleration.
+  - --device=all
+
+  - --filesystem=xdg-download
+  # Screen sharing.
+  - --filesystem=xdg-run/pipewire-0
+
+  - --talk-name=org.freedesktop.Notifications
+  # Inhibit the screensaver during calls.
+  - --talk-name=org.freedesktop.ScreenSaver
+  # keytar stores session credentials in the OS keyring, via libsecret.
+  - --talk-name=org.freedesktop.secrets
+  # Tray icon.
+  - --talk-name=org.kde.StatusNotifierWatcher
+
+  # Electron's powerMonitor, for reconnecting after suspend.
+  - --system-talk-name=org.freedesktop.login1
+
+  - --env=XCURSOR_PATH=/run/host/user-share/icons:/run/host/share/icons
+
+modules:
+  # apply_extra needs unsquashfs; the runtime has none.
+  - name: squashfs-tools
+    buildsystem: simple
+    build-commands:
+      - make -C squashfs-tools -j ${FLATPAK_BUILDER_N_JOBS} unsquashfs
+      - install -Dm755 squashfs-tools/unsquashfs ${FLATPAK_DEST}/bin/unsquashfs
+    sources:
+      - type: git
+        url: https://github.com/plougher/squashfs-tools.git
+        tag: 4.7.5
+        commit: 708c59ae80853b0845017c33b42e56061cc546cd
+
+  - name: beeper
+    buildsystem: simple
+    build-commands:
+      - install -Dm755 apply_extra ${FLATPAK_DEST}/bin/apply_extra
+      - install -Dm755 beeper.sh ${FLATPAK_DEST}/bin/beeper.sh
+      - install -Dm644 ${FLATPAK_ID}.desktop
+        ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
+      - install -Dm644 ${FLATPAK_ID}.metainfo.xml
+        ${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.metainfo.xml
+      - install -Dm644 ${FLATPAK_ID}.png
+        ${FLATPAK_DEST}/share/icons/hicolor/512x512/apps/${FLATPAK_ID}.png
+    sources:
+      # Not redistributed here: Flatpak fetches this from Beeper at install time
+      # and apply_extra unpacks it into /app/extra.
+      - type: extra-data
+        only-arches: [x86_64]
+        filename: beeper.AppImage
+        url: https://beeper-desktop.download.beeper.com/builds/Beeper-4.3.20-x86_64.AppImage
+        sha256: f7196c2e127667420268099d612ada34ad75f983dbbe08972430f67be9496901
+        size: 271104123
+
+      - type: extra-data
+        only-arches: [aarch64]
+        filename: beeper.AppImage
+        url: https://beeper-desktop.download.beeper.com/builds/Beeper-4.3.20-arm64.AppImage
+        sha256: ba4019330ed75101a9518fd0715fc955948ddcfb1328526c929ee1d67f617baa
+        size: 274007907
+
+      - type: file
+        path: apply_extra
+      - type: file
+        path: beeper.sh
+      - type: file
+        path: io.github.mark12870.beeper.desktop
+      - type: file
+        path: io.github.mark12870.beeper.metainfo.xml
+      - type: file
+        path: io.github.mark12870.beeper.png

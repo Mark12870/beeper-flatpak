@@ -1,0 +1,49 @@
+#!/bin/bash
+# Runs on the user's machine at install time, in /app/extra, alongside the
+# AppImage Flatpak just downloaded.
+#
+# The AppImage cannot unpack itself here: Flatpak's apply_extra sandbox mounts no
+# /proc, and --appimage-extract resolves its own path via /proc/self/exe. Find
+# the squashfs appended to the runtime ELF and unpack that instead.
+
+set -euo pipefail
+
+APPIMAGE=beeper.AppImage
+
+offset="$(python3 - "${APPIMAGE}" <<'PY'
+import struct
+import sys
+
+with open(sys.argv[1], "rb") as image:
+    image.seek(0x28)
+    (e_shoff,) = struct.unpack("<Q", image.read(8))
+    image.seek(0x3A)
+    e_shentsize, e_shnum = struct.unpack("<HH", image.read(4))
+
+    # The ELF ends with its section header table; the payload follows.
+    offset = e_shoff + e_shentsize * e_shnum
+
+    image.seek(offset)
+    if image.read(4) != b"hsqs":
+        sys.exit(f"no squashfs magic at offset {offset}")
+
+print(offset)
+PY
+)"
+
+unsquashfs -quiet -no-progress -d squashfs-root -o "${offset}" "${APPIMAGE}"
+mv squashfs-root/* .
+rm -rf squashfs-root "${APPIMAGE}"
+
+# Catches an upstream rename here rather than as a broken app at runtime.
+if [ ! -x beepertexts ]; then
+    echo "apply_extra: beepertexts is missing - upstream layout changed" >&2
+    exit 1
+fi
+
+# Upstream leaves desktopName unset, so Electron guesses "beepertexts.desktop"
+# and Wayland windows and notifications lose their icon.
+patch-electron-desktop-filename \
+    --desktop-filename io.github.mark12870.beeper \
+    --skip-integrity-check \
+    resources/app.asar

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Beeper
+GenericName=Unified Messenger
+Comment=All your chats in one app
+Exec=beeper.sh %U
+Icon=io.github.mark12870.beeper
+Terminal=false
+Categories=Network;InstantMessaging;
+Keywords=chat;messaging;matrix;whatsapp;signal;telegram;imessage;
+MimeType=x-scheme-handler/beeper;
+StartupWMClass=Beeper
+X-GNOME-UsesNotifications=true

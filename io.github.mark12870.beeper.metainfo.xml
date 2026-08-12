@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.mark12870.beeper</id>
+
+  <name>Beeper</name>
+  <summary>All your chats in one app</summary>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+
+  <developer id="com.automattic">
+    <name>Beeper (Automattic)</name>
+  </developer>
+
+  <description>
+    <p>
+      Beeper is a universal chat app that brings conversations from many
+      messaging networks together into a single unified inbox, with one
+      searchable list of chats across all of them.
+    </p>
+    <p>
+      This is an unofficial Flatpak packaging of the official Beeper desktop
+      application. It is not affiliated with, endorsed by, or supported by
+      Beeper or Automattic. The application itself is proprietary and is
+      downloaded directly from Beeper's servers when you install this package;
+      it is not redistributed here.
+    </p>
+  </description>
+
+  <launchable type="desktop-id">io.github.mark12870.beeper.desktop</launchable>
+
+  <url type="homepage">https://www.beeper.com</url>
+  <url type="bugtracker">https://github.com/Mark12870/beeper-flatpak/issues</url>
+
+  <categories>
+    <category>Network</category>
+    <category>InstantMessaging</category>
+  </categories>
+
+  <content_rating type="oars-1.1">
+    <content_attribute id="social-chat">intense</content_attribute>
+    <content_attribute id="social-audio">intense</content_attribute>
+    <content_attribute id="social-info">mild</content_attribute>
+  </content_rating>
+
+  <releases>
+    <release version="4.3.20" date="2026-08-07"/>
+  </releases>
+</component>
