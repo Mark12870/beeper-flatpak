@@ -117,6 +117,7 @@ jobs:
         id: gpg
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           # Hard failure rather than a quiet unsigned publish: clients that added
           # the remote while it was signed break on an unsigned update, and a
@@ -126,15 +127,44 @@ jobs:
                  "Settings > Secrets and variables > Actions > Repository secrets."
             exit 1
           fi
+
           GNUPGHOME="${RUNNER_TEMP}/gnupg"
           mkdir -p "${GNUPGHOME}" && chmod 700 "${GNUPGHOME}"
           export GNUPGHOME
-          printf '%s' "${GPG_PRIVATE_KEY}" | gpg --batch --import
+
+          # A runner has no terminal, so the agent must never reach for pinentry
+          # -- it would die with "Inappropriate ioctl for device". The long cache
+          # TTL keeps any passphrase alive across the delta generation that runs
+          # before the repo is signed.
+          printf 'pinentry-mode loopback\n' > "${GNUPGHOME}/gpg.conf"
+          printf 'allow-loopback-pinentry\ndefault-cache-ttl 7200\nmax-cache-ttl 7200\n' \
+            > "${GNUPGHOME}/gpg-agent.conf"
+          gpgconf --kill gpg-agent || true
+
+          printf '%s\n' "${GPG_PRIVATE_KEY}" | gpg --batch --import
           keyid="$(gpg --list-secret-keys --with-colons | awk -F: '/^fpr:/ {print $10; exit}')"
           if [ -z "${keyid}" ]; then
             echo "::error::the secret imported no usable secret key"
             exit 1
           fi
+
+          pass=()
+          if [ -n "${GPG_PASSPHRASE}" ]; then
+            printf '%s' "${GPG_PASSPHRASE}" > "${GNUPGHOME}/pp"
+            pass=(--passphrase-file "${GNUPGHOME}/pp")
+          fi
+
+          # Sign once here: proves the key is usable and primes the agent cache so
+          # ostree's GPGME signing does not prompt. Failing now costs seconds;
+          # failing during build-update-repo costs the whole delta generation.
+          if ! err="$(echo smoke | gpg --batch --yes --pinentry-mode loopback \
+                       ${pass[@]+"${pass[@]}"} --local-user "${keyid}" \
+                       --sign --output /dev/null 2>&1)"; then
+            echo "::error::cannot sign with ${keyid}: ${err//$'\n'/ } ::" \
+                 "if the key has a passphrase, add it as the GPG_PASSPHRASE secret"
+            exit 1
+          fi
+
           echo "signing with ${keyid}"
           {
             echo "keyid=${keyid}"
@@ -143,10 +173,14 @@ jobs:
 
       - name: Update and sign the repo
         run: |
-          flatpak build-update-repo --generate-static-deltas --prune \
-            --gpg-sign="${{ steps.gpg.outputs.keyid }}" \
-            --gpg-homedir="${{ steps.gpg.outputs.gnupghome }}" \
-            _site/repo
+          # Annotations are readable without repo admin rights; raw logs are not.
+          if ! err="$(flatpak build-update-repo --generate-static-deltas --prune \
+                       --gpg-sign="${{ steps.gpg.outputs.keyid }}" \
+                       --gpg-homedir="${{ steps.gpg.outputs.gnupghome }}" \
+                       _site/repo 2>&1 >/dev/null)"; then
+            echo "::error::build-update-repo failed: ${err//$'\n'/ }"
+            exit 1
+          fi
           test -f _site/repo/summary.sig  # the signature must actually exist
 
       - name: Generate the .flatpakrepo

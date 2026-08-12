@@ -7,6 +7,7 @@ remote on GitHub Pages. App ID `io.github.mark12870.beeper`.
 
 Aim for clean code. Keep it minimal and readable — no dead config, no scaffolding
 that isn't used. Comment only what is non-obvious, and say *why*, not *what*.
+Keep the code as simple as possible.
 
 ## Build and test
 

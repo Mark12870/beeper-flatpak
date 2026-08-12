@@ -93,8 +93,10 @@ one rather than publishing unsigned. That is deliberate — clients that added t
 while it was signed break on an unsigned update, so a green build must never quietly
 downgrade it.
 
-Use a key with **no passphrase**: CI imports it with `gpg --batch`, which cannot answer a
-prompt.
+If the key has a passphrase, add it as a second secret, `GPG_PASSPHRASE`. A runner has no
+terminal, so the workflow configures loopback pinentry and signs once up front to prime the
+agent cache — without that, gpg-agent tries to launch pinentry and dies with
+`Inappropriate ioctl for device`.
 
 To set it up, generate a key and store the private half as the secret:
 
