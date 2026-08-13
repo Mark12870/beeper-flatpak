@@ -3,9 +3,14 @@ name: Build and publish the Flatpak repo
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - 'README.md'
-      - '.gitignore'
+    # Only the package's own inputs. Docs and the version script cannot change
+    # what gets built, and a rebuild exports fresh commits that every installed
+    # client then sees as an update.
+    paths:
+      - 'io.github.mark12870.beeper.*'   # manifest, metainfo, desktop entry, icon
+      - 'apply_extra'
+      - 'beeper.sh'
+      - '.github/workflows/build-publish.yml'
   workflow_dispatch:
   # Called by update-version.yml. A push it makes with the default GITHUB_TOKEN
   # cannot trigger the `push` event above, so it has to invoke this directly and
