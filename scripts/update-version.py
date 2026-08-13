@@ -4,11 +4,11 @@
 Beeper publishes no version manifest and no checksums for its Linux builds. The
 only machine-readable signal is the redirect served by
 
-    https://api.beeper.com/desktop/download/linux/<arch>/stable/com.automattic.beeper.desktop
+    https://api.beeper.com/desktop/download/linux/x64/stable/com.automattic.beeper.desktop
 
 whose Location header names a versioned AppImage. So: resolve the redirect to
-learn the current version, and if it moved, download each architecture's
-AppImage to compute the sha256 and size that `type: extra-data` requires.
+learn the current version, and if it moved, download the AppImage to compute the
+sha256 and size that `type: extra-data` requires.
 
 Exit status is 0 whether or not an update was found; check the `updated` value
 written to $GITHUB_OUTPUT (or the final line of stdout) to tell the difference.
@@ -29,7 +29,7 @@ MANIFEST = REPO / "io.github.mark12870.beeper.yml"
 METAINFO = REPO / "io.github.mark12870.beeper.metainfo.xml"
 
 DOWNLOAD_URL = (
-    "https://api.beeper.com/desktop/download/linux/{endpoint}/stable"
+    "https://api.beeper.com/desktop/download/linux/x64/stable"
     "/com.automattic.beeper.desktop"
 )
 
@@ -37,11 +37,7 @@ DOWNLOAD_URL = (
 # User-Agent, so identify as something else.
 USER_AGENT = "beeper-flatpak/update-version (+https://github.com/Mark12870/beeper-flatpak)"
 
-# Beeper's endpoint name -> the filename suffix it serves, which is also how the
-# two extra-data sources are told apart in the manifest.
-ARCHES = {"x64": "x86_64", "arm64": "arm64"}
-
-VERSION_RE = re.compile(r"^Beeper-(\d+(?:\.\d+)*)-(?:x86_64|arm64)\.AppImage$")
+VERSION_RE = re.compile(r"^Beeper-(\d+(?:\.\d+)*)-x86_64\.AppImage$")
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -49,13 +45,11 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-def resolve(endpoint: str) -> tuple[str, str, str]:
-    """Return (version, filename, absolute url) for an architecture endpoint."""
+def resolve() -> tuple[str, str, str]:
+    """Return (version, filename, absolute url) for the current release."""
     opener = urllib.request.build_opener(NoRedirect)
     request = urllib.request.Request(
-        DOWNLOAD_URL.format(endpoint=endpoint),
-        method="HEAD",
-        headers={"User-Agent": USER_AGENT},
+        DOWNLOAD_URL, method="HEAD", headers={"User-Agent": USER_AGENT}
     )
     try:
         opener.open(request, timeout=60)
@@ -64,7 +58,7 @@ def resolve(endpoint: str) -> tuple[str, str, str]:
             raise
         location = err.headers["Location"]
     else:
-        raise SystemExit(f"expected a redirect for {endpoint}, got a direct response")
+        raise SystemExit("expected a redirect from api.beeper.com, got a direct response")
 
     filename = location.rsplit("/", 1)[-1]
     match = VERSION_RE.match(filename)
@@ -95,8 +89,8 @@ def current_version(manifest: str) -> str | None:
     return match.group(1) if match else None
 
 
-def rewrite_source(manifest: str, suffix: str, url: str, sha256: str, size: int) -> str:
-    """Replace the url/sha256/size triple of one architecture's extra-data source.
+def rewrite_source(manifest: str, url: str, sha256: str, size: int) -> str:
+    """Replace the url/sha256/size triple of the extra-data source.
 
     Edits the lines in place rather than round-tripping the YAML, so the
     manifest's comments and formatting survive untouched.
@@ -104,7 +98,7 @@ def rewrite_source(manifest: str, suffix: str, url: str, sha256: str, size: int)
     lines = manifest.splitlines(keepends=True)
     url_re = re.compile(
         r"^(\s*url: )https://beeper-desktop\.download\.beeper\.com/builds/"
-        rf"Beeper-\S*-{re.escape(suffix)}\.AppImage\s*$"
+        r"Beeper-\S*-x86_64\.AppImage\s*$"
     )
 
     for i, line in enumerate(lines):
@@ -118,7 +112,7 @@ def rewrite_source(manifest: str, suffix: str, url: str, sha256: str, size: int)
             lines[j] = re.sub(r"^(\s*size: )\d+$", rf"\g<1>{size}", lines[j])
         return "".join(lines)
 
-    raise SystemExit(f"no extra-data source found for {suffix} in {MANIFEST.name}")
+    raise SystemExit(f"no extra-data source found in {MANIFEST.name}")
 
 
 def emit(**values: str) -> None:
@@ -134,28 +128,18 @@ def main() -> None:
     manifest = MANIFEST.read_text(encoding="utf-8")
     have = current_version(manifest)
 
-    resolved = {arch: resolve(endpoint) for endpoint, arch in ARCHES.items()}
-    versions = {version for version, _, _ in resolved.values()}
-    if len(versions) > 1:
-        # Architectures are usually released in lockstep; if they ever diverge,
-        # stop rather than pin the two sources to different versions.
-        raise SystemExit(f"architectures disagree on the version: {sorted(versions)}")
-    latest = versions.pop()
+    latest, filename, url = resolve()
 
     print(f"manifest: {have}\nupstream: {latest}")
     if have == latest:
         emit(updated="false", version=latest)
         return
 
-    release_date = None
-    for arch, (_, filename, url) in resolved.items():
-        print(f"hashing {filename} ...", flush=True)
-        sha256, size, date = fetch(url)
-        release_date = release_date or date
-        manifest = rewrite_source(manifest, arch, url, sha256, size)
-        print(f"  sha256={sha256} size={size}")
+    print(f"hashing {filename} ...", flush=True)
+    sha256, size, release_date = fetch(url)
+    print(f"  sha256={sha256} size={size}")
 
-    MANIFEST.write_text(manifest, encoding="utf-8")
+    MANIFEST.write_text(rewrite_source(manifest, url, sha256, size), encoding="utf-8")
 
     metainfo = METAINFO.read_text(encoding="utf-8")
     release = f'<release version="{latest}"'

@@ -10,9 +10,6 @@ FLAGS=(
     --enable-features=WaylandWindowDecorations,WebRTCPipeWireCapturer
 )
 
-# The GPU sandbox and the proprietary NVIDIA driver do not get along.
-[ -e /dev/nvidia0 ] && FLAGS+=(--disable-gpu-sandbox)
-
 # Store data where a non-Flatpak Beeper does, so an existing install carries
 # over. XDG_CONFIG_HOME is redirected into the sandbox and cannot reach it, so
 # the host path is spelled out. Falls back to the sandbox when the permission

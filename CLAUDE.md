@@ -1,7 +1,8 @@
 # CLAUDE.md
 
 Flatpak packaging of the proprietary Beeper desktop app, published as a self-hosted
-remote on GitHub Pages. App ID `io.github.mark12870.beeper`.
+remote on GitHub Pages. App ID `io.github.mark12870.beeper`. `x86_64` only — the
+maintainer runs one machine, so there is deliberately no arm build.
 
 ## Code style
 
@@ -43,6 +44,11 @@ Validate with `desktop-file-validate`, `appstreamcli validate`, and `bash -n`.
   skip the delta path, so a `file://` test passes against a repo real clients reject.
 - A push made with the default `GITHUB_TOKEN` raises no `push` event, so
   `update-version.yml` invokes `build-publish.yml` directly via `workflow_call`.
+- GitHub disables scheduled workflows after 60 days without repository activity. If
+  releases stop being picked up, re-enable the schedule from the Actions tab.
+- `build-publish.yml` triggers only on the package's own inputs (manifest, `apply_extra`,
+  `beeper.sh`, the metainfo/desktop/icon, and itself). A rebuild exports new commits that
+  every installed client sees as an update, so docs and script pushes must not fire it.
 - Fedora's system `flathub` remote is filtered; add a user-scoped one to install SDKs.
 
 ## Changing the manifest

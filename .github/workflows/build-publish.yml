@@ -36,17 +36,7 @@ env:
 
 jobs:
   build:
-    strategy:
-      # Without this a flake on one architecture cancels the other, hiding
-      # whether it would have passed.
-      fail-fast: false
-      matrix:
-        include:
-          - arch: x86_64
-            runner: ubuntu-latest
-          - arch: aarch64
-            runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
     container:
       image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-25.08
       # bwrap needs to set up its own namespaces to build inside a container.
@@ -67,7 +57,6 @@ jobs:
         run: |
           flatpak-builder \
             --repo=repo \
-            --arch=${{ matrix.arch }} \
             --force-clean \
             --disable-rofiles-fuse \
             --default-branch=stable \
@@ -76,12 +65,12 @@ jobs:
       # Tarred because upload-artifact does not preserve the symlinks an OSTree
       # repository is built out of.
       - name: Pack the repo
-        run: tar -cf "repo-${{ matrix.arch }}.tar" repo
+        run: tar -cf repo.tar repo
 
       - uses: actions/upload-artifact@v7
         with:
-          name: repo-${{ matrix.arch }}
-          path: repo-${{ matrix.arch }}.tar
+          name: repo
+          path: repo.tar
           retention-days: 1
 
   publish:
@@ -99,21 +88,14 @@ jobs:
 
       - uses: actions/download-artifact@v8
         with:
-          pattern: repo-*
-          path: artifacts
-          merge-multiple: true
+          name: repo
 
-      - name: Merge the per-architecture repos
+      - name: Unpack the built repo
         run: |
-          # ostree init mkdirs only the repo itself, and this job has no checkout.
+          # flatpak-builder already wrote it as archive-z2, which is what Pages
+          # needs to serve; the tar lands as _site/repo.
           mkdir -p _site
-          ostree --repo=_site/repo init --mode=archive-z2
-          for tar in artifacts/repo-*.tar; do
-            dir="unpacked/$(basename "$tar" .tar)"
-            mkdir -p "$dir"
-            tar -xf "$tar" -C "$dir"
-            ostree --repo=_site/repo pull-local "$dir/repo"
-          done
+          tar -xf repo.tar -C _site
 
       - uses: actions/configure-pages@v6
         id: pages

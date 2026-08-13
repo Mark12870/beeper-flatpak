@@ -63,18 +63,10 @@ modules:
       # Not redistributed here: Flatpak fetches this from Beeper at install time
       # and apply_extra unpacks it into /app/extra.
       - type: extra-data
-        only-arches: [x86_64]
         filename: beeper.AppImage
         url: https://beeper-desktop.download.beeper.com/builds/Beeper-4.3.34-x86_64.AppImage
         sha256: 634e427b80958e383e4fcaa515a30116288a444afb633d0e4c4a9c55d1ff4d42
         size: 271441390
-
-      - type: extra-data
-        only-arches: [aarch64]
-        filename: beeper.AppImage
-        url: https://beeper-desktop.download.beeper.com/builds/Beeper-4.3.34-arm64.AppImage
-        sha256: a84dc997f2928fa7406f02cc1f450e2c73594d31cd6bbf26c4f7f976a63dd0a5
-        size: 274384753
 
       - type: file
         path: apply_extra
