@@ -33,6 +33,10 @@ DOWNLOAD_URL = (
     "/com.automattic.beeper.desktop"
 )
 
+# Cloudflare fronts both beeper.com hosts and 403s the default Python-urllib
+# User-Agent, so identify as something else.
+USER_AGENT = "beeper-flatpak/update-version (+https://github.com/Mark12870/beeper-flatpak)"
+
 # Beeper's endpoint name -> the filename suffix it serves, which is also how the
 # two extra-data sources are told apart in the manifest.
 ARCHES = {"x64": "x86_64", "arm64": "arm64"}
@@ -48,7 +52,11 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 def resolve(endpoint: str) -> tuple[str, str, str]:
     """Return (version, filename, absolute url) for an architecture endpoint."""
     opener = urllib.request.build_opener(NoRedirect)
-    request = urllib.request.Request(DOWNLOAD_URL.format(endpoint=endpoint), method="HEAD")
+    request = urllib.request.Request(
+        DOWNLOAD_URL.format(endpoint=endpoint),
+        method="HEAD",
+        headers={"User-Agent": USER_AGENT},
+    )
     try:
         opener.open(request, timeout=60)
     except urllib.error.HTTPError as err:
@@ -69,7 +77,8 @@ def fetch(url: str) -> tuple[str, int, str | None]:
     """Download `url`, returning (sha256, size, release date as YYYY-MM-DD)."""
     digest = hashlib.sha256()
     size = 0
-    with urllib.request.urlopen(url, timeout=900) as response:
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(request, timeout=900) as response:
         last_modified = response.headers.get("Last-Modified")
         while chunk := response.read(1 << 20):
             digest.update(chunk)
