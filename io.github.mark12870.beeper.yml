@@ -65,16 +65,16 @@ modules:
       - type: extra-data
         only-arches: [x86_64]
         filename: beeper.AppImage
-        url: https://beeper-desktop.download.beeper.com/builds/Beeper-4.3.20-x86_64.AppImage
-        sha256: f7196c2e127667420268099d612ada34ad75f983dbbe08972430f67be9496901
-        size: 271104123
+        url: https://beeper-desktop.download.beeper.com/builds/Beeper-4.3.34-x86_64.AppImage
+        sha256: 634e427b80958e383e4fcaa515a30116288a444afb633d0e4c4a9c55d1ff4d42
+        size: 271441390
 
       - type: extra-data
         only-arches: [aarch64]
         filename: beeper.AppImage
-        url: https://beeper-desktop.download.beeper.com/builds/Beeper-4.3.20-arm64.AppImage
-        sha256: ba4019330ed75101a9518fd0715fc955948ddcfb1328526c929ee1d67f617baa
-        size: 274007907
+        url: https://beeper-desktop.download.beeper.com/builds/Beeper-4.3.34-arm64.AppImage
+        sha256: a84dc997f2928fa7406f02cc1f450e2c73594d31cd6bbf26c4f7f976a63dd0a5
+        size: 274384753
 
       - type: file
         path: apply_extra
