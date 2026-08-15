@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Beeper — unofficial Flatpak</title>
 <meta name="description" content="Unofficial Flatpak packaging of the Beeper desktop app, published as a self-hosted remote.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%232f5bd8' d='M8 1a7 6 0 1 0-4 10.9L3 15l4-2.2A7 6 0 0 0 8 1z'/%3E%3C/svg%3E">
 <style>
 :root {
   --bg: #fbfbfc;
@@ -104,14 +103,14 @@ flatpak install beeper $app_id</code></pre>
 
 <h2>Where your data lives</h2>
 <p>
-  <code>~/.config/BeeperTexts</code> — the same path Beeper's own AppImage and deb use, so an
-  existing install carries over with nothing to migrate. The app is granted that one directory
-  and no more. Credentials go to the system keyring through libsecret.
+  <code>~/.config/BeeperTexts</code> — the same path Beeper's own AppImage uses, so an
+  existing install carries over with nothing to migrate. That one directory is its only home
+  access; it also gets <code>~/Downloads</code>, PipeWire, and <code>--device=all</code>.
 </p>
 
 <h2>Rolling back</h2>
 <p>
-  The last $history_depth releases stay installable. Pick a commit from the table and:
+  The last $history_depth releases stay listed. Pick a commit from the table and:
 </p>
 <pre><code>flatpak update --commit=&lt;COMMIT&gt; $app_id</code></pre>
 <p>
@@ -119,10 +118,9 @@ flatpak install beeper $app_id</code></pre>
   makes the rollback stick until you unmask it.
 </p>
 <p>
-  The app is packaged as <code>extra-data</code>: nothing of Beeper's is stored in this repo,
-  and installing fetches the AppImage straight from Beeper against a pinned SHA-256. So a
-  rollback only works while Beeper still serves that version — the <b>Upstream</b> column
-  below is checked on every publish.
+  Nothing of Beeper's is stored here — installing fetches the AppImage from Beeper against a
+  pinned SHA-256. So a rollback only works while Beeper still serves that version; the
+  <b>Upstream</b> column below is checked on every publish.
 </p>
 
 <div class="table-scroll">
@@ -146,8 +144,7 @@ $rows
 <footer>
   <a href="$homepage">Source and issues</a>
   <a href="$flatpakrepo_url">.flatpakrepo</a>
-  <a href="$repo_url">OSTree repo</a>
-  <div style="margin-top:0.75rem">Generated $generated. Packaging is MIT licensed.</div>
+  <div style="margin-top:0.75rem">Generated $generated. Packaging is MIT licensed; Beeper's logo is not.</div>
 </footer>
 
 </main>
