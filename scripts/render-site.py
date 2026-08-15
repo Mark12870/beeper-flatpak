@@ -175,7 +175,6 @@ def main() -> None:
     args.out.mkdir(parents=True, exist_ok=True)
     page = Template(TEMPLATE.read_text(encoding="utf-8")).substitute(
         app_id=app_id,
-        repo_url=f"{base}/repo/",
         flatpakrepo_url=f"{base}/{app_id}.flatpakrepo",
         homepage=html.escape(args.homepage),
         current_version=html.escape(current_version),
