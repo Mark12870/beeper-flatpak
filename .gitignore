@@ -1,6 +1,7 @@
 .flatpak-builder/
 build/
 repo/
+__pycache__/
 .idea/
 .claude/settings.local.json
 *.asc

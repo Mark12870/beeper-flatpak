@@ -15,6 +15,21 @@ flatpak install beeper io.github.mark12870.beeper
 flatpak run io.github.mark12870.beeper
 ```
 
+## Rolling back
+
+Around a hundred releases stay in the published repo, so a bad Beeper update can be undone:
+
+```sh
+flatpak remote-info --log beeper io.github.mark12870.beeper   # or use the site
+flatpak update --commit=<COMMIT> io.github.mark12870.beeper
+```
+
+A plain `flatpak update` moves you forward again; `flatpak mask io.github.mark12870.beeper`
+holds the rollback until you unmask it.
+
+Because the AppImage is `extra-data` it is fetched from Beeper at install time, so a rollback
+only works while Beeper still serves that version.
+
 ## Where your data lives
 
 `~/.config/BeeperTexts` — the same path Beeper's own AppImage and deb use, not the usual
@@ -36,7 +51,11 @@ The AppImage is declared as `extra-data`, so nothing of Beeper's is stored here 
 published OSTree repo: `flatpak install` fetches it straight from Beeper, checks it against
 the pinned hash, and unpacks it into `/app/extra` on your machine. That keeps the hosted
 repo a few hundred kilobytes instead of ~270 MB, which matters against the 1 GB GitHub Pages
-cap.
+cap — and makes retained history nearly free, at roughly 13 kB per release.
+
+Each build starts by pulling the published repo back down, so the new commit lands as a child
+of the last one rather than as a fresh root. That parent chain is what `--commit=` rolls back
+along.
 
 ## Build it yourself
 

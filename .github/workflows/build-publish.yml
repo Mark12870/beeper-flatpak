@@ -33,6 +33,11 @@ concurrency:
 
 env:
   APP_ID: io.github.mark12870.beeper
+  # Parents kept behind each head when pruning, so `flatpak update --commit=` has
+  # somewhere to go -- the head plus this many older releases. Cheap here: the
+  # AppImage is extra-data, so a version bump only changes six small files --
+  # about 13 kB of objects per release.
+  HISTORY_DEPTH: 100
 
 jobs:
   build:
@@ -52,6 +57,42 @@ jobs:
             org.freedesktop.Platform//25.08 \
             org.freedesktop.Sdk//25.08 \
             org.electronjs.Electron2.BaseApp//25.08
+
+      # Without this the repo starts empty every run and each export is a
+      # parentless root: nothing to roll back to. Seeding it first makes the new
+      # commit a child of the published one.
+      - name: Seed the repo from the published history
+        run: |
+          owner="${GITHUB_REPOSITORY%%/*}"
+          url="https://${owner,,}.github.io/${GITHUB_REPOSITORY#*/}/repo/"
+
+          # Branch on the status itself, not on curl's exit: -f collapses every
+          # 4xx and 5xx into exit 22, so a 403 or a down Pages would read as
+          # "nothing published yet".
+          code="$(curl -sSI -o /dev/null -w '%{http_code}' \
+                  --retry 3 --retry-all-errors "${url}summary")" || code=000
+          case "${code}" in
+            200) ;;
+            404|410)
+              echo "::notice::nothing published at ${url} yet; starting a fresh history"
+              exit 0 ;;
+            # Anything else -- 403, 5xx, or a transport failure (000) -- is a
+            # fault, not a missing repo. Carrying on would silently re-root the
+            # history and drop every rollback target.
+            *)
+              echo "::error::cannot reach ${url} (HTTP ${code})"
+              exit 1 ;;
+          esac
+
+          ostree --repo=repo init --mode=archive-z2
+          ostree --repo=repo remote add --no-gpg-verify published "${url}"
+          # Signatures ride along with the commits, and clients re-verify them, so
+          # verifying our own upload here would buy nothing. Depth -1 is safe past
+          # the pruned end of the history: ostree stops there rather than failing.
+          ostree --repo=repo pull --mirror --depth=-1 published
+          # --mirror wrote plain local refs, so the remote is spent -- and it would
+          # otherwise be published inside repo/config.
+          ostree --repo=repo remote delete published
 
       - name: Build
         run: |
@@ -167,10 +208,13 @@ jobs:
           # so signing afterwards would leave every delta carrying an unsigned
           # commit -- and ostree prefers deltas over HTTP.
           for ref in $(ostree --repo=_site/repo refs); do
+            c="$(ostree --repo=_site/repo rev-parse "${ref}")"
+            # Heads carried in from the published history are signed already, and
+            # gpg-sign errors out rather than no-opping on those.
+            [ -f "_site/repo/objects/${c:0:2}/${c:2}.commitmeta" ] && continue
             ostree --repo=_site/repo gpg-sign \
               --gpg-homedir="${{ steps.gpg.outputs.gnupghome }}" \
-              "$(ostree --repo=_site/repo rev-parse "${ref}")" \
-              "${{ steps.gpg.outputs.keyid }}"
+              "${c}" "${{ steps.gpg.outputs.keyid }}"
           done
 
           # No --generate-static-deltas: ostree prefers a delta over plain objects
@@ -179,6 +223,7 @@ jobs:
           # optimising a ~4 MB payload anyway -- the 270 MB comes from Beeper's
           # CDN as extra-data, which deltas never touch.
           if ! err="$(flatpak build-update-repo --prune \
+                       --prune-depth="${HISTORY_DEPTH}" \
                        --gpg-sign="${{ steps.gpg.outputs.keyid }}" \
                        --gpg-homedir="${{ steps.gpg.outputs.gnupghome }}" \
                        _site/repo 2>&1 >/dev/null)"; then

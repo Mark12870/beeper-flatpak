@@ -48,7 +48,19 @@ Validate with `desktop-file-validate`, `appstreamcli validate`, and `bash -n`.
   releases stop being picked up, re-enable the schedule from the Actions tab.
 - `build-publish.yml` triggers only on the package's own inputs (manifest, `apply_extra`,
   `beeper.sh`, the metainfo/desktop/icon, and itself). A rebuild exports new commits that
-  every installed client sees as an update, so docs and script pushes must not fire it.
+  every installed client sees as an update — and now burns a slot of rollback history — so
+  docs and script pushes must not fire it.
+- **The build seeds `repo/` from the published Pages repo before building.** Without that
+  pull each export is a parentless root and there is no history to roll back along. The
+  seed step fails loudly on any fetch error other than a 404, because treating a network
+  blip as "first publish" would silently discard every rollback target.
+- `ostree pull` defaults to `--depth=0`, which fetches no history at all. Pulling deeper
+  than the published history is safe: ostree stops at the pruned end rather than failing,
+  so `--depth=-1` needs no coupling to `HISTORY_DEPTH`, and that cap can be changed freely.
+  Verified over HTTP against a pruned remote, not just `file://`.
+- `ostree gpg-sign` **fails** on a commit already signed with that key ("Commit is already
+  signed with GPG key"), so the `commitmeta` check that skips heads carried in from the pull
+  is load-bearing, not tidiness — without it every publish after the first dies there.
 - Fedora's system `flathub` remote is filtered; add a user-scoped one to install SDKs.
 
 ## Changing the manifest
