@@ -15,6 +15,9 @@ flatpak install beeper io.github.mark12870.beeper
 flatpak run io.github.mark12870.beeper
 ```
 
+[mark12870.github.io/beeper-flatpak](https://mark12870.github.io/beeper-flatpak/) lists the
+versions currently installable.
+
 ## Rolling back
 
 Around a hundred releases stay in the published repo, so a bad Beeper update can be undone:
@@ -28,7 +31,8 @@ A plain `flatpak update` moves you forward again; `flatpak mask io.github.mark12
 holds the rollback until you unmask it.
 
 Because the AppImage is `extra-data` it is fetched from Beeper at install time, so a rollback
-only works while Beeper still serves that version.
+only works while Beeper still serves that version. Every publish checks each retained version
+against upstream and reports the retired ones, which the site shows as an **Upstream** column.
 
 ## Where your data lives
 
@@ -55,7 +59,8 @@ cap — and makes retained history nearly free, at roughly 13 kB per release.
 
 Each build starts by pulling the published repo back down, so the new commit lands as a child
 of the last one rather than as a fresh root. That parent chain is what `--commit=` rolls back
-along.
+along. The site's front page and the `.flatpakrepo` are generated from that same history by
+`scripts/render-site.py`.
 
 ## Build it yourself
 
@@ -92,4 +97,4 @@ gpg --export-secret-keys --armor <KEY_ID> > key.asc   # paste into the secret, t
 ## License
 
 The packaging in this repository is MIT licensed (see [LICENSE](LICENSE)). Beeper itself is
-proprietary and is covered by its own terms.
+proprietary and is covered by its own terms, including the Beeper logo.

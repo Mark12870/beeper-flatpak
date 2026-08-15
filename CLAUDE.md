@@ -49,7 +49,9 @@ Validate with `desktop-file-validate`, `appstreamcli validate`, and `bash -n`.
 - `build-publish.yml` triggers only on the package's own inputs (manifest, `apply_extra`,
   `beeper.sh`, the metainfo/desktop/icon, and itself). A rebuild exports new commits that
   every installed client sees as an update — and now burns a slot of rollback history — so
-  docs and script pushes must not fire it.
+  docs, script and `site/` pushes must not fire it. Page edits ship with the next real
+  publish; iterate locally with
+  `scripts/render-site.py --repo repo --out /tmp/site --unsigned`.
 - **The build seeds `repo/` from the published Pages repo before building.** Without that
   pull each export is a parentless root and there is no history to roll back along. The
   seed step fails loudly on any fetch error other than a 404, because treating a network

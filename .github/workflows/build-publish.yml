@@ -121,7 +121,11 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      # No checkout: this job works only from the build artifacts.
+      # Only for scripts/ and site/ -- the repo itself comes from the artifact.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
       - name: Install flatpak
         run: |
           sudo apt-get update
@@ -240,20 +244,20 @@ jobs:
             fi
           done
 
-      - name: Generate the .flatpakrepo
+      # Also warns about published versions whose AppImage upstream no longer
+      # serves -- those are still listed, but can no longer be rolled back to.
+      - name: Render the site
         env:
           BASE: ${{ steps.pages.outputs.base_url }}
         run: |
-          {
-            echo '[Flatpak Repo]'
-            echo 'Title=Beeper (unofficial)'
-            echo "Url=${BASE}/repo/"
-            echo "Homepage=https://github.com/${GITHUB_REPOSITORY}"
-            echo 'Comment=Unofficial Flatpak build of the Beeper desktop app'
-            echo 'Description=Unofficial Flatpak packaging of the official Beeper desktop application. Not affiliated with Beeper or Automattic.'
-            echo "GPGKey=$(gpg --homedir "${{ steps.gpg.outputs.gnupghome }}" \
+          python3 scripts/render-site.py \
+            --repo _site/repo \
+            --out _site \
+            --base-url "${BASE}" \
+            --homepage "https://github.com/${GITHUB_REPOSITORY}" \
+            --gpg-fingerprint "${{ steps.gpg.outputs.keyid }}" \
+            --gpg-key "$(gpg --homedir "${{ steps.gpg.outputs.gnupghome }}" \
               --export "${{ steps.gpg.outputs.keyid }}" | base64 -w0)"
-          } > "_site/${APP_ID}.flatpakrepo"
 
           # Stop Pages from running the upload through Jekyll.
           touch _site/.nojekyll
