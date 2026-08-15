@@ -97,4 +97,7 @@ gpg --export-secret-keys --armor <KEY_ID> > key.asc   # paste into the secret, t
 ## License
 
 The packaging in this repository is MIT licensed (see [LICENSE](LICENSE)). Beeper itself is
-proprietary and is covered by its own terms, including the Beeper logo.
+proprietary and is covered by its own terms.
+
+`io.github.mark12870.beeper.png` is Beeper's logo, not mine, and is excluded from that MIT
+grant — it is here only to identify the app being packaged.

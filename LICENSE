@@ -1,3 +1,14 @@
+The license below covers the packaging in this repository only.
+
+It does not cover io.github.mark12870.beeper.png, which is Beeper's logo. That
+mark belongs to its owner and is reproduced here solely to identify the
+application this repository packages. No rights to it are granted by this
+license, and nothing here implies affiliation with or endorsement by Beeper or
+Automattic. The packaged application itself is proprietary and is covered by
+Beeper's own terms.
+
+---
+
 MIT License
 
 Copyright (c) 2026 Marek Ryšavý
