@@ -64,9 +64,9 @@ modules:
       # and apply_extra unpacks it into /app/extra.
       - type: extra-data
         filename: beeper.AppImage
-        url: https://beeper-desktop.download.beeper.com/builds/Beeper-4.3.104-x86_64.AppImage
-        sha256: 6b42072150559ba8f529fdec800f800fd51fa6e1241ae4cb60e4454247b2c3e9
-        size: 276352843
+        url: https://beeper-desktop.download.beeper.com/builds/Beeper-4.3.113-x86_64.AppImage
+        sha256: c690243fbbacfac7afd143403db83d5032c3fca4038582d44bf625403dc4aa5b
+        size: 276355665
 
       - type: file
         path: apply_extra
