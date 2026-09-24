@@ -27,8 +27,10 @@ finish-args:
   - --talk-name=org.freedesktop.ScreenSaver
   # keytar stores session credentials in the OS keyring, via libsecret.
   - --talk-name=org.freedesktop.secrets
-  # Tray icon.
+  # Tray icon. Chromium claims this name before registering with the watcher;
+  # it is PID 2 in the sandbox's PID namespace, and wildcards can't match "-2-1".
   - --talk-name=org.kde.StatusNotifierWatcher
+  - --own-name=org.freedesktop.StatusNotifierItem-2-1
 
   # Electron's powerMonitor, for reconnecting after suspend.
   - --system-talk-name=org.freedesktop.login1
